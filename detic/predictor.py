@@ -4,6 +4,7 @@ import bisect
 import multiprocessing as mp
 from collections import deque
 import cv2
+import detectron2.structures
 import torch
 
 from detectron2.data import MetadataCatalog
@@ -22,6 +23,7 @@ def get_clip_embeddings(vocabulary, prompt='a '):
     emb = text_encoder(texts).detach().permute(1, 0).contiguous().cpu()
     return emb
 
+
 BUILDIN_CLASSIFIER = {
     'lvis': 'datasets/metadata/lvis_v1_clip_a+cname.npy',
     'objects365': 'datasets/metadata/o365_clip_a+cnamefix.npy',
@@ -36,9 +38,9 @@ BUILDIN_METADATA_PATH = {
     'coco': 'coco_2017_val',
 }
 
+
 class VisualizationDemo(object):
-    def __init__(self, cfg, args, 
-        instance_mode=ColorMode.IMAGE, parallel=False):
+    def __init__(self, cfg, args, instance_mode=ColorMode.IMAGE, parallel=False):
         """
         Args:
             cfg (CfgNode):
@@ -66,6 +68,10 @@ class VisualizationDemo(object):
         else:
             self.predictor = DefaultPredictor(cfg)
         reset_cls_test(self.predictor.model, classifier, num_classes)
+
+    def predict_instances_only(self, image) -> detectron2.structures.Instances:
+        predictions = self.predictor(image)
+        return predictions['instances'].to('cpu')
 
     def run_on_image(self, image):
         """
