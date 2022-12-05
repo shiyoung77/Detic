@@ -21,23 +21,25 @@ from torch.cuda.amp import autocast
 from ..text.text_encoder import build_text_encoder
 from ..utils import load_class_freq, get_fed_loss_inds
 
+
 @META_ARCH_REGISTRY.register()
 class CustomRCNN(GeneralizedRCNN):
     '''
     Add image labels
     '''
+
     @configurable
     def __init__(
-        self, 
-        with_image_labels = False,
-        dataset_loss_weight = [],
-        fp16 = False,
-        sync_caption_batch = False,
-        roi_head_name = '',
-        cap_batch_ratio = 4,
-        with_caption = False,
-        dynamic_classifier = False,
-        **kwargs):
+            self,
+            with_image_labels=False,
+            dataset_loss_weight=[],
+            fp16=False,
+            sync_caption_batch=False,
+            roi_head_name='',
+            cap_batch_ratio=4,
+            with_caption=False,
+            dynamic_classifier=False,
+            **kwargs):
         """
         """
         self.with_image_labels = with_image_labels
@@ -61,7 +63,6 @@ class CustomRCNN(GeneralizedRCNN):
             for v in self.text_encoder.parameters():
                 v.requires_grad = False
 
-
     @classmethod
     def from_config(cls, cfg):
         ret = super().from_config(cfg)
@@ -83,12 +84,11 @@ class CustomRCNN(GeneralizedRCNN):
             ret['num_sample_cats'] = cfg.MODEL.NUM_SAMPLE_CATS
         return ret
 
-
     def inference(
-        self,
-        batched_inputs: Tuple[Dict[str, torch.Tensor]],
-        detected_instances: Optional[List[Instances]] = None,
-        do_postprocess: bool = True,
+            self,
+            batched_inputs: Tuple[Dict[str, torch.Tensor]],
+            detected_instances: Optional[List[Instances]] = None,
+            do_postprocess: bool = True,
     ):
         assert not self.training
         assert detected_instances is None
@@ -104,7 +104,6 @@ class CustomRCNN(GeneralizedRCNN):
                 results, batched_inputs, images.image_sizes)
         else:
             return results
-
 
     def forward(self, batched_inputs: List[Dict[str, torch.Tensor]]):
         """
@@ -128,8 +127,8 @@ class CustomRCNN(GeneralizedRCNN):
             if ann_type in ['prop', 'proptag']:
                 for t in gt_instances:
                     t.gt_classes *= 0
-        
-        if self.fp16: # TODO (zhouxy): improve
+
+        if self.fp16:
             with autocast():
                 features = self.backbone(images.tensor.half())
             features = {k: v.float() for k, v in features.items()}
@@ -140,18 +139,18 @@ class CustomRCNN(GeneralizedRCNN):
 
         if self.with_caption and 'caption' in ann_type:
             inds = [torch.randint(len(x['captions']), (1,))[0].item() \
-                for x in batched_inputs]
+                    for x in batched_inputs]
             caps = [x['captions'][ind] for ind, x in zip(inds, batched_inputs)]
             caption_features = self.text_encoder(caps).float()
         if self.sync_caption_batch:
             caption_features = self._sync_caption_features(
                 caption_features, ann_type, len(batched_inputs))
-        
+
         if self.dynamic_classifier and ann_type != 'caption':
-            cls_inds = self._sample_cls_inds(gt_instances, ann_type) # inds, inv_inds
+            cls_inds = self._sample_cls_inds(gt_instances, ann_type)  # inds, inv_inds
             ind_with_bg = cls_inds[0].tolist() + [-1]
             cls_features = self.roi_heads.box_predictor[
-                0].cls_score.zs_weight[:, ind_with_bg].permute(1, 0).contiguous()
+                               0].cls_score.zs_weight[:, ind_with_bg].permute(1, 0).contiguous()
 
         classifier_info = cls_features, cls_inds, caption_features
         proposals, proposal_losses = self.proposal_generator(
@@ -164,7 +163,7 @@ class CustomRCNN(GeneralizedRCNN):
             proposals, detector_losses = self.roi_heads(
                 images, features, proposals, gt_instances,
                 ann_type=ann_type, classifier_info=classifier_info)
-        
+
         if self.vis_period > 0:
             storage = get_event_storage()
             if storage.iter % self.vis_period == 0:
@@ -175,7 +174,7 @@ class CustomRCNN(GeneralizedRCNN):
         if self.with_image_labels:
             if ann_type in ['box', 'prop', 'proptag']:
                 losses.update(proposal_losses)
-            else: # ignore proposal loss for non-bbox data
+            else:  # ignore proposal loss for non-bbox data
                 losses.update({k: v * 0 for k, v in proposal_losses.items()})
         else:
             losses.update(proposal_losses)
@@ -185,18 +184,17 @@ class CustomRCNN(GeneralizedRCNN):
             dataset_source = dataset_sources[0]
             for k in losses:
                 losses[k] *= self.dataset_loss_weight[dataset_source]
-        
+
         if self.return_proposal:
             return proposals, losses
         else:
             return losses
 
-
     def _sync_caption_features(self, caption_features, ann_type, BS):
         has_caption_feature = (caption_features is not None)
         BS = (BS * self.cap_batch_ratio) if (ann_type == 'box') else BS
         rank = torch.full(
-            (BS, 1), comm.get_rank(), dtype=torch.float32, 
+            (BS, 1), comm.get_rank(), dtype=torch.float32,
             device=self.device)
         if not has_caption_feature:
             caption_features = rank.new_zeros((BS, 512))
@@ -204,9 +202,8 @@ class CustomRCNN(GeneralizedRCNN):
         global_caption_features = comm.all_gather(caption_features)
         caption_features = torch.cat(
             [x.to(self.device) for x in global_caption_features], dim=0) \
-                if has_caption_feature else None # (NB) x (D + 1)
+            if has_caption_feature else None  # (NB) x (D + 1)
         return caption_features
-
 
     def _sample_cls_inds(self, gt_instances, ann_type='box'):
         if ann_type == 'box':
@@ -217,14 +214,14 @@ class CustomRCNN(GeneralizedRCNN):
         else:
             gt_classes = torch.cat(
                 [torch.tensor(
-                    x._pos_category_ids, 
+                    x._pos_category_ids,
                     dtype=torch.long, device=x.gt_classes.device) \
                     for x in gt_instances])
             C = self.num_classes
             freq_weight = None
         assert gt_classes.max() < C, '{} {}'.format(gt_classes.max(), C)
         inds = get_fed_loss_inds(
-            gt_classes, self.num_sample_cats, C, 
+            gt_classes, self.num_sample_cats, C,
             weight=freq_weight)
         cls_id_map = gt_classes.new_full(
             (self.num_classes + 1,), len(inds))

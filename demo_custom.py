@@ -79,6 +79,13 @@ def main():
     logger.info("Arguments: " + str(args))
     cfg = setup_cfg(args)
     demo = VisualizationDemo(cfg, args)
+
+    # for name, submodule in demo.predictor.model.named_children():  # [backbone, proposal_generator, roi_heads]
+    #     print("================")
+    #     print(name)
+    #     for layer_name, layer in submodule.named_children():
+    #         print(f"\t{layer_name}")
+
     metadata = MetadataCatalog.get("lvis_v1_val")
 
     video_path = os.path.join(args.dataset, args.video)

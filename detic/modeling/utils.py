@@ -4,6 +4,7 @@ import json
 import numpy as np
 from torch.nn import functional as F
 
+
 def load_class_freq(
     path='datasets/metadata/lvis_v1_train_cat_info.json', freq_weight=1.0):
     cat_info = json.load(open(path, 'r'))
@@ -26,7 +27,6 @@ def get_fed_loss_inds(gt_classes, num_sample_cats, C, weight=None):
             replacement=False)
         appeared = torch.cat([appeared, more_appeared])
     return appeared
-
 
 
 def reset_cls_test(model, cls_path, num_classes):
