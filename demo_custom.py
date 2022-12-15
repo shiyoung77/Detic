@@ -103,7 +103,7 @@ def main():
         visualizer = Visualizer(img_rgb, metadata, instance_mode=ColorMode.IMAGE)
         vis_output = visualizer.draw_instance_predictions(predictions=instances)
         vis_im = vis_output.get_image()
-        output_path = os.path.join(output_folder, 'vis_imgs', rgb_file)
+        output_path = os.path.join(output_folder, 'vis_imgs', f"{os.path.splitext(rgb_file)[0]}.jpg")
         cv2.imwrite(output_path, cv2.cvtColor(vis_im, cv2.COLOR_RGB2BGR))
 
         masks_to_rle(instances)
