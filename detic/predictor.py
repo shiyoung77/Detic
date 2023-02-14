@@ -30,6 +30,7 @@ BUILDIN_CLASSIFIER = {
     'objects365': 'datasets/metadata/o365_clip_a+cnamefix.npy',
     'openimages': 'datasets/metadata/oid_clip_a+cname.npy',
     'coco': 'datasets/metadata/coco_clip_a+cname.npy',
+    'icra23': 'datasets/metadata/icra23_clip_a+cname.npy'
 }
 
 BUILDIN_METADATA_PATH = {
@@ -51,20 +52,34 @@ class VisualizationDemo(object):
         """
         if args.vocabulary == 'custom':
             self.metadata = MetadataCatalog.get("__unused")
-            # self.metadata.thing_classes = args.custom_vocabulary.split(',')
-            thing_classes = ["bottle", "mug", "bowl", "can", "marker", "banana", "box", "clamp", "pitcher",
-                             "dumbbell", "duck", "lamp", "dinosaur", "charmander",
-                             "drill", "table", "bottle_cap", "cap", "handle"]
-            self.metadata.thing_classes = thing_classes
+            self.metadata.thing_classes = args.custom_vocabulary.split(',')
             classifier = get_clip_embeddings(self.metadata.thing_classes)
-            # embedding = classifier.numpy().astype(np.float16).T
-            # with open("/home/lsy/software/last_mile_ssl/Detic/datasets/metadata/icra23_cname.txt", 'w') as fp:
-            #     for name in thing_classes:
-            #         fp.write(name + "\n")
-            # np.save("/home/lsy/software/last_mile_ssl/Detic/datasets/metadata/icra23_clip_a+cname.npy", embedding)
+        elif args.vocabulary == "icra23":
+            self.metadata = MetadataCatalog.get("icra23")
+            self.metadata.thing_classes = [
+                "bottle", "mug", "bowl", "can", "marker", "banana", "box", "clamp", "pitcher",
+                "dumbbell", "duck", "lamp", "dinosaur", "charmander",
+                "drill", "table", "bottle_cap", "cap", "handle"
+            ]
+            classifier = get_clip_embeddings(self.metadata.thing_classes)
+            print(f"{classifier.shape = }")
+            print(f"{classifier.dtype = }")
+        elif args.vocabulary == "lvis+icra23":
+            self.metadata = MetadataCatalog.get(BUILDIN_METADATA_PATH['lvis'])
+            lvis_thing_classes = self.metadata.thing_classes
+            lvis_embeddings = np.load(BUILDIN_CLASSIFIER['lvis'])
+            lvis_embeddings = torch.tensor(lvis_embeddings, dtype=torch.float32).permute(1, 0).contiguous()  # D x C
+            icra23_thing_classes = [
+                "bottle", "mug", "bowl", "can", "marker", "banana", "box", "clamp", "pitcher",
+                "dumbbell", "duck", "lamp", "dinosaur", "charmander",
+                "drill", "table", "bottle_cap", "cap", "handle"
+            ]
+            additional_classes = [i for i in icra23_thing_classes if i not in lvis_thing_classes]
+            additional_embeddings = get_clip_embeddings(additional_classes)
+            self.metadata.thing_classes.extend(additional_embeddings)
+            classifier = torch.cat((lvis_embeddings, additional_embeddings), dim=1)
         else:
-            self.metadata = MetadataCatalog.get(
-                BUILDIN_METADATA_PATH[args.vocabulary])
+            self.metadata = MetadataCatalog.get(BUILDIN_METADATA_PATH[args.vocabulary])
             classifier = BUILDIN_CLASSIFIER[args.vocabulary]
 
         num_classes = len(self.metadata.thing_classes)

@@ -46,10 +46,11 @@ def get_parser():
     parser.add_argument("--dataset", default="/home/lsy/dataset/CoRL_real")
     parser.add_argument("--video", default="0001")
     parser.add_argument("--output_folder", default="detic_output")
-    parser.add_argument("--vocabulary", default="lvis", choices=['lvis', 'openimages', 'objects365', 'coco', 'custom'])
+    parser.add_argument("--vocabulary", default="lvis", choices=['lvis', 'openimages', 'objects365', 'coco', 'custom',
+                                                                 'icra23', 'lvis+icra23'])
     parser.add_argument("--custom_vocabulary", default="", help="comma separated words")
     parser.add_argument("--pred_all_class", action='store_true')
-    parser.add_argument("--confidence-threshold", type=float, default=0.5)
+    parser.add_argument("--confidence-threshold", type=float, default=0.3)
     parser.add_argument("--opts", help="'KEY VALUE' pairs", default=[], nargs=argparse.REMAINDER)
     return parser
 
@@ -80,6 +81,7 @@ def main():
     logger.info("Arguments: " + str(args))
     cfg = setup_cfg(args)
     demo = VisualizationDemo(cfg, args)
+    metadata = demo.metadata
 
     # for name, submodule in demo.predictor.model.named_children():  # [backbone, proposal_generator, roi_heads]
     #     print("================")
@@ -87,13 +89,13 @@ def main():
     #     for layer_name, layer in submodule.named_children():
     #         print(f"\t{layer_name}")
 
-    metadata = MetadataCatalog.get("lvis_v1_val")
-
     video_path = os.path.join(args.dataset, args.video)
     rgb_files = sorted(os.listdir(os.path.join(video_path, 'color')))
     output_folder = os.path.join(args.dataset, args.video, args.output_folder)
-    os.makedirs(os.path.join(output_folder, 'vis_imgs'), exist_ok=True)
-    os.makedirs(os.path.join(output_folder, 'instances'), exist_ok=True)
+    output_vis_folder = os.path.join(output_folder, f"{args.vocabulary}-{args.confidence_threshold}", 'vis_imgs')
+    output_instance_folder = os.path.join(output_folder, f"{args.vocabulary}-{args.confidence_threshold}", 'instances')
+    os.makedirs(output_vis_folder, exist_ok=True)
+    os.makedirs(output_instance_folder, exist_ok=True)
 
     for rgb_file in tqdm(rgb_files):
         rgb_path = os.path.join(video_path, 'color', rgb_file)
@@ -104,12 +106,12 @@ def main():
         visualizer = Visualizer(img_rgb, metadata, instance_mode=ColorMode.IMAGE)
         vis_output = visualizer.draw_instance_predictions(predictions=instances)
         vis_im = vis_output.get_image()
-        output_path = os.path.join(output_folder, 'vis_imgs', f"{os.path.splitext(rgb_file)[0]}.jpg")
+        output_path = os.path.join(output_vis_folder, f"{os.path.splitext(rgb_file)[0]}.jpg")
         cv2.imwrite(output_path, cv2.cvtColor(vis_im, cv2.COLOR_RGB2BGR))
 
         masks_to_rle(instances)
         instances.remove('pred_masks')
-        output_path = os.path.join(output_folder, 'instances', f"{os.path.splitext(rgb_file)[0]}.pkl")
+        output_path = os.path.join(output_instance_folder, f"{os.path.splitext(rgb_file)[0]}.pkl")
         with open(output_path, 'wb') as f:
             pickle.dump(instances, f)
 
