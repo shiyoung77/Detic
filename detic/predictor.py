@@ -1,4 +1,5 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
+import numpy as np
 import atexit
 import bisect
 import multiprocessing as mp
@@ -50,8 +51,17 @@ class VisualizationDemo(object):
         """
         if args.vocabulary == 'custom':
             self.metadata = MetadataCatalog.get("__unused")
-            self.metadata.thing_classes = args.custom_vocabulary.split(',')
+            # self.metadata.thing_classes = args.custom_vocabulary.split(',')
+            thing_classes = ["bottle", "mug", "bowl", "can", "marker", "banana", "box", "clamp", "pitcher",
+                             "dumbbell", "duck", "lamp", "dinosaur", "charmander",
+                             "drill", "table", "bottle_cap", "cap", "handle"]
+            self.metadata.thing_classes = thing_classes
             classifier = get_clip_embeddings(self.metadata.thing_classes)
+            # embedding = classifier.numpy().astype(np.float16).T
+            # with open("/home/lsy/software/last_mile_ssl/Detic/datasets/metadata/icra23_cname.txt", 'w') as fp:
+            #     for name in thing_classes:
+            #         fp.write(name + "\n")
+            # np.save("/home/lsy/software/last_mile_ssl/Detic/datasets/metadata/icra23_clip_a+cname.npy", embedding)
         else:
             self.metadata = MetadataCatalog.get(
                 BUILDIN_METADATA_PATH[args.vocabulary])
