@@ -78,6 +78,32 @@ class VisualizationDemo(object):
             additional_embeddings = get_clip_embeddings(additional_classes)
             self.metadata.thing_classes.extend(additional_embeddings)
             classifier = torch.cat((lvis_embeddings, additional_embeddings), dim=1)
+        elif args.vocabulary == "ycb_video":
+            self.metadata = MetadataCatalog.get("ycb_video")
+            self.metadata.thing_classes = [
+                "master_chef_can", "cracker_box", "sugar_box", "tomato_soup_can", "mustard_bottle", "tuna_fish_can",
+                "pudding_box", "gelatin_box", "potted_meat_can", "banana", "pitcher_base", "bleach_cleanser", "bowl",
+                "mug", "power_drill", "wood_block", "scissors", "large_marker",
+                "large_clamp", "extra_large_clamp", "foam_brick"
+            ]
+            classifier = get_clip_embeddings(self.metadata.thing_classes)
+            print(f"{classifier.shape = }")
+            print(f"{classifier.dtype = }")
+        elif args.vocabulary == "lvis+ycb_video":
+            self.metadata = MetadataCatalog.get(BUILDIN_METADATA_PATH['lvis'])
+            lvis_thing_classes = self.metadata.thing_classes
+            lvis_embeddings = np.load(BUILDIN_CLASSIFIER['lvis'])
+            lvis_embeddings = torch.tensor(lvis_embeddings, dtype=torch.float32).permute(1, 0).contiguous()  # D x C
+            ycb_video_thing_classes = [
+                "master_chef_can", "cracker_box", "sugar_box", "tomato_soup_can", "mustard_bottle", "tuna_fish_can",
+                "pudding_box", "gelatin_box", "potted_meat_can", "banana", "pitcher_base", "bleach_cleanser", "bowl",
+                "mug", "power_drill", "wood_block", "scissors", "large_marker",
+                "large_clamp", "extra_large_clamp", "foam_brick"
+            ]
+            additional_classes = [i for i in ycb_video_thing_classes if i not in lvis_thing_classes]
+            additional_embeddings = get_clip_embeddings(additional_classes)
+            self.metadata.thing_classes.extend(additional_embeddings)
+            classifier = torch.cat((lvis_embeddings, additional_embeddings), dim=1)
         else:
             self.metadata = MetadataCatalog.get(BUILDIN_METADATA_PATH[args.vocabulary])
             classifier = BUILDIN_CLASSIFIER[args.vocabulary]

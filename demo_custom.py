@@ -46,8 +46,8 @@ def get_parser():
     parser.add_argument("--dataset", default="/home/lsy/dataset/CoRL_real")
     parser.add_argument("--video", default="0001")
     parser.add_argument("--output_folder", default="detic_output")
-    parser.add_argument("--vocabulary", default="lvis", choices=['lvis', 'openimages', 'objects365', 'coco', 'custom',
-                                                                 'icra23', 'lvis+icra23'])
+    parser.add_argument("--vocabulary", default="lvis", choices=['lvis', 'custom', 'icra23', 'lvis+icra23',
+                                                                 'lvis+ycb_video', 'ycb_video'])
     parser.add_argument("--custom_vocabulary", default="", help="comma separated words")
     parser.add_argument("--pred_all_class", action='store_true')
     parser.add_argument("--confidence-threshold", type=float, default=0.3)
