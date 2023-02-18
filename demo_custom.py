@@ -34,6 +34,7 @@ def setup_cfg(args):
     cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = args.confidence_threshold
     cfg.MODEL.PANOPTIC_FPN.COMBINE.INSTANCES_CONFIDENCE_THRESH = args.confidence_threshold
     cfg.MODEL.ROI_BOX_HEAD.ZEROSHOT_WEIGHT_PATH = 'rand'  # load later
+    cfg.DATALOADER.NUM_WORKERS = 2
     if not args.pred_all_class:
         cfg.MODEL.ROI_HEADS.ONE_CLASS_PER_PROPOSAL = True
     cfg.freeze()
@@ -47,7 +48,7 @@ def get_parser():
     parser.add_argument("--video", default="0001")
     parser.add_argument("--output_folder", default="detic_output")
     parser.add_argument("--vocabulary", default="lvis", choices=['lvis', 'custom', 'icra23', 'lvis+icra23',
-                                                                 'lvis+ycb_video', 'ycb_video'])
+                                                                 'lvis+ycb_video', 'ycb_video', 'scan_net'])
     parser.add_argument("--custom_vocabulary", default="", help="comma separated words")
     parser.add_argument("--pred_all_class", action='store_true')
     parser.add_argument("--confidence-threshold", type=float, default=0.3)
