@@ -1,17 +1,16 @@
 import subprocess
 import concurrent.futures
 from pathlib import Path
-from itertools import repeat
 
 
 def detic(video, idx):
-    DATASET = "~/dataset/ScanNet"
+    DATASET = Path("~/dataset/ScanNet/aligned_scans").expanduser()
     VOCABULARY = "lvis"
     CONFIDENCE_THRESH = 0.3
 
     NUM_GPUS = 8
     DEVICE = idx % NUM_GPUS
-    print(f"Processing {video = }, {DEVICE = }")
+    print(f"Processing {video = }, {idx = }, {DEVICE = }")
 
     command = f"""
         CUDA_VISIBLE_DEVICES={DEVICE} python demo_custom.py \
@@ -26,8 +25,8 @@ def detic(video, idx):
     subprocess.run(command, shell=True)
 
 
-def proposed_fusion(dataset, video, idx):
-    DATASET = "~/t7/ScanNet"
+def proposed_fusion(video, idx):
+    DATASET = Path("~/t7/ScanNet").expanduser()
     IOU_THRESH = 0.3
     RECALL_THRESH = 0.4
     DEPTH_THRESH = 0.04
@@ -35,20 +34,20 @@ def proposed_fusion(dataset, video, idx):
     SIZE_THRESH = 100
     NUM_GPUS = 8
     DEVICE = f"cuda:{idx % NUM_GPUS}"
-    print(f"Processing {video = }, {DEVICE = }")
+    print(f"Processing {video = }, {idx = }, {DEVICE = }")
 
     command = f"""
         python proposed_fusion.py \
-             --dataset "{DATASET}" \
-             --video "{video}" \
-             --detic "scan_net-0.3" \
-             --iou_thresh "{IOU_THRESH}" \
-             --recall_thresh "{RECALL_THRESH}" \
-             --feature_similarity_thresh "{FEATURE_SIMILARITY_THRESH}" \
-             --depth_thresh "{DEPTH_THRESH}" \
-             --size_thresh "{SIZE_THRESH}" \
-             --device "{DEVICE}" \
-             --vocab_feature_file "src/scannet200.npy" \
+            --dataset "{DATASET}" \
+            --video "{video}" \
+            --detic "scan_net-0.3" \
+            --iou_thresh "{IOU_THRESH}" \
+            --recall_thresh "{RECALL_THRESH}" \
+            --feature_similarity_thresh "{FEATURE_SIMILARITY_THRESH}" \
+            --depth_thresh "{DEPTH_THRESH}" \
+            --size_thresh "{SIZE_THRESH}" \
+            --device "{DEVICE}" \
+            --vocab_feature_file "src/scannet200.npy" \
     """
     subprocess.run(command, shell=True)
 
