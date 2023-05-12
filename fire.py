@@ -39,19 +39,24 @@ def main():
     parser.add_argument("--vocabulary", default="lvis")
     parser.add_argument("--confidence_thresh", type=float, default=0.3)
     parser.add_argument("--output_folder", default="detic_output")
-    parser.add_argument("--num_gpus", type=int, default=8)
+    parser.add_argument("--num_gpus", type=int, default=-1, help="-1 means using all the visible gpus")
     args = parser.parse_args()
+
+    if args.num_gpus == -1:
+        max_workers = torch.cuda.device_count()
+    else:
+        max_workers = args.num_gpus
 
     dataset = Path(args.dataset).expanduser()
     videos = [i.name for i in sorted(dataset.iterdir())]
 
     _available_devices = Queue()
-    for i in range(args.num_gpus):
+    for i in range(max_workers):
         _available_devices.put(i)
     init_args = (_available_devices,)
 
     tic = perf_counter()
-    with ProcessPoolExecutor(max_workers=args.num_gpus, initializer=init_process, initargs=init_args) as executor:
+    with ProcessPoolExecutor(max_workers=max_workers, initializer=init_process, initargs=init_args) as executor:
         executor.map(detic, repeat(dataset), videos, range(len(videos)), repeat(args))
     print(f"Process {len(videos)} takes {perf_counter() - tic}s")
 
