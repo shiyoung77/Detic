@@ -103,12 +103,12 @@ def main():
         img = read_image(rgb_path, format="BGR")
         instances = demo.predict_instances_only(img)
 
-        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        visualizer = Visualizer(img_rgb, metadata, instance_mode=ColorMode.IMAGE)
-        vis_output = visualizer.draw_instance_predictions(predictions=instances)
-        vis_im = vis_output.get_image()
-        output_path = os.path.join(output_vis_folder, f"{os.path.splitext(rgb_file)[0]}.jpg")
-        cv2.imwrite(output_path, cv2.cvtColor(vis_im, cv2.COLOR_RGB2BGR))
+        # img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        # visualizer = Visualizer(img_rgb, metadata, instance_mode=ColorMode.IMAGE)
+        # vis_output = visualizer.draw_instance_predictions(predictions=instances)
+        # vis_im = vis_output.get_image()
+        # output_path = os.path.join(output_vis_folder, f"{os.path.splitext(rgb_file)[0]}.jpg")
+        # cv2.imwrite(output_path, cv2.cvtColor(vis_im, cv2.COLOR_RGB2BGR))
 
         masks_to_rle(instances)
         instances.remove('pred_masks')

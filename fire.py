@@ -6,6 +6,8 @@ from pathlib import Path
 from itertools import repeat
 from time import perf_counter
 
+import torch
+
 
 global available_devices
 
@@ -35,7 +37,7 @@ def detic(dataset, video, idx, args):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset", type=str, default="~/t7/ScanNet/aligned_scans")
+    parser.add_argument("--dataset", type=str, default="~/t7/custom_scans/")
     parser.add_argument("--vocabulary", default="lvis")
     parser.add_argument("--confidence_thresh", type=float, default=0.3)
     parser.add_argument("--output_folder", default="detic_output")
@@ -45,10 +47,14 @@ def main():
     if args.num_gpus == -1:
         max_workers = torch.cuda.device_count()
     else:
-        max_workers = args.num_gpus
+        max_workers = min(args.num_gpus, torch.cuda.device_count())
 
     dataset = Path(args.dataset).expanduser()
     videos = [i.name for i in sorted(dataset.iterdir())]
+
+    print(f"{dataset = }")
+    print(f"{len(videos) = }")
+    print(f"{max_workers = }")
 
     _available_devices = Queue()
     for i in range(max_workers):
