@@ -7,6 +7,7 @@ from collections import deque
 import cv2
 import detectron2.structures
 import torch
+from pathlib import Path
 
 from detectron2.data import MetadataCatalog
 from detectron2.engine.defaults import DefaultPredictor
@@ -30,7 +31,8 @@ BUILDIN_CLASSIFIER = {
     'objects365': 'datasets/metadata/o365_clip_a+cnamefix.npy',
     'openimages': 'datasets/metadata/oid_clip_a+cname.npy',
     'coco': 'datasets/metadata/coco_clip_a+cname.npy',
-    'icra23': 'datasets/metadata/icra23_clip_a+cname.npy'
+    'icra23': 'datasets/metadata/icra23_clip_a+cname.npy',
+    'imagenet21k': 'datasets/metadata/imagenet21k_clip_a+cname.npy',
 }
 
 BUILDIN_METADATA_PATH = {
@@ -38,6 +40,7 @@ BUILDIN_METADATA_PATH = {
     'objects365': 'objects365_v2_val',
     'openimages': 'oid_val_expanded',
     'coco': 'coco_2017_val',
+    'imagenet21k': 'imagenet21k',
 }
 
 
@@ -138,6 +141,11 @@ class VisualizationDemo(object):
             classifier = get_clip_embeddings(self.metadata.thing_classes)
             print(f"{classifier.shape = }")
             print(f"{classifier.dtype = }")
+        elif args.vocabulary == "imagenet21k":
+            self.metadata = MetadataCatalog.get(BUILDIN_METADATA_PATH[args.vocabulary])
+            imagenet21k_vocabs = Path("datasets/metadata/imagenet21k_wordnet_lemmas.txt").read_text().splitlines()
+            self.metadata.thing_classes = [w.split(',')[0] for w in imagenet21k_vocabs]
+            classifier = BUILDIN_CLASSIFIER[args.vocabulary]
         else:
             self.metadata = MetadataCatalog.get(BUILDIN_METADATA_PATH[args.vocabulary])
             classifier = BUILDIN_CLASSIFIER[args.vocabulary]
