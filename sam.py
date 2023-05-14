@@ -66,7 +66,7 @@ def main():
     os.environ["CUDA_VISIBLE_DEVICES"] = f"{args.chunk_id}"
 
     # initialize SAM
-    predictor = SamPredictor(build_sam(checkpoint=Path(args.sam_checkpoint).expanduser()).to(args.device))
+    # predictor = SamPredictor(build_sam(checkpoint=Path(args.sam_checkpoint).expanduser()).to(args.device))
 
     dataset = Path(args.dataset).expanduser()
     video_folders = sorted((dataset / 'aligned_scans').iterdir())
@@ -74,45 +74,55 @@ def main():
     video_folders = video_folders[chunk_size * args.chunk_id: chunk_size * (args.chunk_id + 1)]
     print(f"{video_folders = }")
 
-    for video_folder in video_folders:
+    # for video_folder in video_folders:
+    for video_folder in [dataset / "aligned_scans" / "scene0645_00"]:
         color_im_folder = video_folder / "color"
         detic_output_folder = video_folder / "detic_output" / args.detic_exp / "instances"
 
-        for color_im_path in tqdm(sorted(color_im_folder.iterdir())):
+        for color_im_path in tqdm(sorted(color_im_folder.iterdir())[1000:]):
             image = cv2.imread(str(color_im_path))
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            predictor.set_image(image)
+            # predictor.set_image(image)
 
-            detic_output_path = detic_output_folder / color_im_path.name.replace("jpg", "pkl")
-            with open(detic_output_path, 'rb') as fp:
-                instances = pickle.load(fp)
+            # detic_output_path = detic_output_folder / color_im_path.name.replace("jpg", "pkl")
+            # with open(detic_output_path, 'rb') as fp:
+            #     instances = pickle.load(fp)
 
-            boxes = instances.get("pred_boxes").tensor.to(args.device)  # XYXY
-            transformed_boxes = predictor.transform.apply_boxes_torch(boxes, image.shape[:2])
-
-            masks, qualities, _ = predictor.predict_torch(
-                point_coords=None,
-                point_labels=None,
-                boxes=transformed_boxes,
-                multimask_output=False,
-            )
-            masks = masks.detach().squeeze().cpu().numpy().astype(np.bool_)
-            qualities = qualities.squeeze().detach().cpu().numpy()
-            instances.sam_masks_rle = masks_to_rle(masks)
-            instances.sam_qualities = qualities
-
+            # boxes = instances.get("pred_boxes").tensor.to(args.device)  # XYXY
+            # transformed_boxes = predictor.transform.apply_boxes_torch(boxes, image.shape[:2])
+            #
+            # masks, qualities, _ = predictor.predict_torch(
+            #     point_coords=None,
+            #     point_labels=None,
+            #     boxes=transformed_boxes,
+            #     multimask_output=False,
+            # )
+            # masks = masks.detach().squeeze().cpu().numpy().astype(np.bool_)
+            # qualities = qualities.squeeze().detach().cpu().numpy()
+            # instances.sam_masks_rle = masks_to_rle(masks)
+            # instances.sam_qualities = qualities
+            #
             output_path = detic_output_folder / color_im_path.name.replace(".jpg", "_sam.pkl")
-            with open(output_path, 'wb') as f:
-                pickle.dump(instances, f)
+            # with open(output_path, 'wb') as f:
+            #     pickle.dump(instances, f)
+
+            with open(output_path, 'rb') as f:
+                instances = pickle.load(f)
+                masks = torch.from_numpy(np.stack([mask_util.decode(rle) for rle in instances.sam_masks_rle]))
+
+            boxes = instances.pred_boxes.tensor
+            pred_classes = instances.pred_classes.numpy()
+            pred_scores = instances.scores.numpy()
+            qualities = instances.sam_qualities
 
             # draw output image
-            # plt.figure(figsize=(10, 10))
-            # for box, label, mask, quality, score in zip(boxes, pred_classes, masks, qualities, pred_scores):
-            #     print(f"{quality = }, {score = }")
-            #     plt.imshow(image)
-            #     show_mask(mask.cpu().numpy(), plt.gca(), random_color=True)
-            #     show_box(box.cpu().numpy(), plt.gca(), f"{quality = }, {score = }")
-            #     plt.show()
+            plt.figure(figsize=(10, 10))
+            for box, label, mask, quality, score in zip(boxes, pred_classes, masks, qualities, pred_scores):
+                print(f"{label = }, {quality = :.3f}, {score = :.3f}")
+                plt.imshow(image)
+                show_mask(mask.cpu().numpy(), plt.gca(), random_color=True)
+                show_box(box.cpu().numpy(), plt.gca(), f"{quality = :.3f}, {score = :.3f}")
+                plt.show()
 
 
 if __name__ == "__main__":
