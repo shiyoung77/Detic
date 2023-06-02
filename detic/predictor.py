@@ -33,6 +33,7 @@ BUILDIN_CLASSIFIER = {
     'coco': 'datasets/metadata/coco_clip_a+cname.npy',
     'icra23': 'datasets/metadata/icra23_clip_a+cname.npy',
     'imagenet21k': 'datasets/metadata/imagenet21k_clip_a+cname.npy',
+    'imagenet21k-scannet200': 'datasets/metadata/imagenet21k-scannet200_clip_a+cname.npy',
 }
 
 BUILDIN_METADATA_PATH = {
@@ -41,6 +42,7 @@ BUILDIN_METADATA_PATH = {
     'openimages': 'oid_val_expanded',
     'coco': 'coco_2017_val',
     'imagenet21k': 'imagenet21k',
+    'imagenet21k-scannet200': 'imagenet21k-scannet200',
 }
 
 
@@ -145,6 +147,10 @@ class VisualizationDemo(object):
             self.metadata = MetadataCatalog.get(BUILDIN_METADATA_PATH[args.vocabulary])
             imagenet21k_vocabs = Path("datasets/metadata/imagenet21k_wordnet_lemmas.txt").read_text().splitlines()
             self.metadata.thing_classes = [w.split(',')[0] for w in imagenet21k_vocabs]
+            classifier = BUILDIN_CLASSIFIER[args.vocabulary]
+        elif args.vocabulary == "imagenet21k-scannet200":
+            self.metadata = MetadataCatalog.get(BUILDIN_METADATA_PATH[args.vocabulary])
+            self.metadata.thing_classes = Path("datasets/metadata/imagenet21k-scannet200.txt").read_text().splitlines()
             classifier = BUILDIN_CLASSIFIER[args.vocabulary]
         else:
             self.metadata = MetadataCatalog.get(BUILDIN_METADATA_PATH[args.vocabulary])
