@@ -29,7 +29,8 @@ def detic(dataset, video, idx, args):
             --output_folder "{args.output_folder}" \
             --vocabulary "{args.vocabulary}" \
             --confidence-threshold {args.confidence_thresh} \
-            --opts MODEL.WEIGHTS "models/Detic_LCOCOI21k_CLIP_SwinB_896b32_4x_ft4x_max-size.pth"
+            --opts MODEL.WEIGHTS "models/Detic_LCOCOI21k_CLIP_SwinB_896b32_4x_ft4x_max-size.pth" \
+            # --save_vis_imgs \
     """
     subprocess.run(command, shell=True)
     available_devices.put(device)
@@ -37,8 +38,8 @@ def detic(dataset, video, idx, args):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset", type=str, default="~/t7/ScanNet/aligned_scans")
-    parser.add_argument("--vocabulary", default="imagenet21k")
+    parser.add_argument("--dataset", type=str, default="~/dataset/ScanNet/aligned_scans")
+    parser.add_argument("--vocabulary", default="coco")
     parser.add_argument("--confidence_thresh", type=float, default=0.3)
     parser.add_argument("--output_folder", default="detic_output")
     parser.add_argument("--num_gpus", type=int, default=-1, help="-1 means using all the visible gpus")
@@ -51,6 +52,8 @@ def main():
 
     dataset = Path(args.dataset).expanduser()
     videos = [i.name for i in sorted(dataset.iterdir())]
+    # videos = [f"recording{i}" for i in range(17, 18)]
+    # videos = ["scene0645_00"]
 
     print(f"{dataset = }")
     print(f"{len(videos) = }")

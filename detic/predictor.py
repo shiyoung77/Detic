@@ -143,6 +143,23 @@ class VisualizationDemo(object):
             classifier = get_clip_embeddings(self.metadata.thing_classes)
             print(f"{classifier.shape = }")
             print(f"{classifier.dtype = }")
+        elif args.vocabulary == "coco":
+            self.metadata = MetadataCatalog.get("coco")
+            self.metadata.thing_classes = [
+                'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light',
+                'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow',
+                'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee',
+                'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard',
+                'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple',
+                'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch',
+                'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard',
+                'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase',
+                'scissors', 'teddy bear', 'hair drier', 'toothbrush'
+            ]
+            assert len(self.metadata.thing_classes) == 80
+            classifier = get_clip_embeddings(self.metadata.thing_classes)
+            print(f"{classifier.shape = }")
+            print(f"{classifier.dtype = }")
         elif args.vocabulary == "imagenet21k":
             self.metadata = MetadataCatalog.get(BUILDIN_METADATA_PATH[args.vocabulary])
             imagenet21k_vocabs = Path("datasets/metadata/imagenet21k_wordnet_lemmas.txt").read_text().splitlines()
