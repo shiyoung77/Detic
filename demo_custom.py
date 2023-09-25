@@ -47,12 +47,12 @@ def get_parser():
     parser.add_argument("--dataset", default="/home/lsy/dataset/CoRL_real")
     parser.add_argument("--video", default="0001")
     parser.add_argument("--output_folder", default="detic_output")
-    parser.add_argument("--vocabulary", default="lvis", choices=['lvis', 'custom', 'icra23', 'lvis+icra23',
-                                                                 'lvis+ycb_video', 'ycb_video', 'scan_net',
-                                                                 'imagenet21k'])
+    parser.add_argument("--vocabulary", default="lvis", choices=['lvis', 'custom', 'ycb_video',
+                                                                 'scannet200', 'imagenet21k'])
     parser.add_argument("--custom_vocabulary", default="", help="comma separated words")
     parser.add_argument("--pred_all_class", action='store_true')
     parser.add_argument("--confidence-threshold", type=float, default=0.3)
+    parser.add_argument("--save_vis", action='store_true')
     parser.add_argument("--opts", help="'KEY VALUE' pairs", default=[], nargs=argparse.REMAINDER)
     return parser
 
@@ -85,12 +85,6 @@ def main():
     demo = VisualizationDemo(cfg, args)
     metadata = demo.metadata
 
-    # for name, submodule in demo.predictor.model.named_children():  # [backbone, proposal_generator, roi_heads]
-    #     print("================")
-    #     print(name)
-    #     for layer_name, layer in submodule.named_children():
-    #         print(f"\t{layer_name}")
-
     video_path = os.path.join(args.dataset, args.video)
     rgb_files = sorted(os.listdir(os.path.join(video_path, 'color')))
     output_folder = os.path.join(args.dataset, args.video, args.output_folder)
@@ -104,12 +98,13 @@ def main():
         img = read_image(rgb_path, format="BGR")
         instances = demo.predict_instances_only(img)
 
-        # img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        # visualizer = Visualizer(img_rgb, metadata, instance_mode=ColorMode.IMAGE)
-        # vis_output = visualizer.draw_instance_predictions(predictions=instances)
-        # vis_im = vis_output.get_image()
-        # output_path = os.path.join(output_vis_folder, f"{os.path.splitext(rgb_file)[0]}.jpg")
-        # cv2.imwrite(output_path, cv2.cvtColor(vis_im, cv2.COLOR_RGB2BGR))
+        if args.save_vis:  # very slow
+            img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            visualizer = Visualizer(img_rgb, metadata, instance_mode=ColorMode.IMAGE)
+            vis_output = visualizer.draw_instance_predictions(predictions=instances)
+            vis_im = vis_output.get_image()
+            output_path = os.path.join(output_vis_folder, f"{os.path.splitext(rgb_file)[0]}.jpg")
+            cv2.imwrite(output_path, cv2.cvtColor(vis_im, cv2.COLOR_RGB2BGR))
 
         masks_to_rle(instances)
         instances.remove('pred_masks')

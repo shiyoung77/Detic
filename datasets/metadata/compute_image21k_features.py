@@ -8,7 +8,13 @@ import clip
 def main():
     imagenet21k_vocab_file = Path("imagenet21k_wordnet_lemmas.txt")
     lines = imagenet21k_vocab_file.read_text().splitlines()
-    cat_labels = [line.split(",")[0] for line in lines]
+
+    # cat_labels = [line.split(",")[0] for line in lines]
+    cat_labels = []
+    for line in lines:
+        cat_labels.extend(line.split(","))
+    cat_labels = list(set(cat_labels))
+    print(f"{len(cat_labels) = }")
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model, preprocess = clip.load('ViT-B/32', device)
