@@ -11,7 +11,7 @@ import torch
 import matplotlib.pyplot as plt
 import pycocotools.mask as mask_util
 from tqdm import tqdm
-from segment_anything import build_sam, SamPredictor
+from segment_anything import build_sam, build_sam_vit_b, SamPredictor
 
 
 def show_mask(mask, ax, random_color=False):
@@ -51,78 +51,71 @@ def rle_to_masks(instances):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--dataset", type=str, default="~/t7/ScanNet")
-    parser.add_argument("-v", "--video", type=str, default="scene0011_00")
-    parser.add_argument("--detic_exp", type=str, default="scan_net-0.3")
+    parser.add_argument("-d", "--dataset", type=str, default="~/t7/ScanNet/aligned_scans")
+    parser.add_argument("--detic_exp", type=str, default="imagenet21k-0.3")
+    parser.add_argument("--video", default="scene0011_00")
     parser.add_argument("--sam_checkpoint", type=str, default="~/Downloads/sam_vit_h_4b8939.pth")
+    # parser.add_argument("--sam_checkpoint", type=str, default="~/Downloads/sam_vit_b_01ec64.pth")
     parser.add_argument("--device", type=str, default="cuda:0")
-    parser.add_argument("--chunk_id", type=int, default=0)
-    parser.add_argument("--num_chunks", type=int, default=8)
-    parser.add_argument("--visualize", action="store_true")
+    parser.add_argument("stride", type=int, default=5, help="stride of frames to process")
     args = parser.parse_args()
 
-    git_repo = Path(git.Repo(search_parent_directories=True).working_tree_dir)
-    sys.path.append(str(git_repo))
-    os.environ["CUDA_VISIBLE_DEVICES"] = f"{args.chunk_id}"
-
     # initialize SAM
-    # predictor = SamPredictor(build_sam(checkpoint=Path(args.sam_checkpoint).expanduser()).to(args.device))
+    # predictor = SamPredictor(build_sam_vit_b(checkpoint=Path(args.sam_checkpoint).expanduser()).to(args.device))
+    predictor = SamPredictor(build_sam(checkpoint=Path(args.sam_checkpoint).expanduser()).to(args.device))
 
     dataset = Path(args.dataset).expanduser()
-    video_folders = sorted((dataset / 'aligned_scans').iterdir())
-    chunk_size = len(video_folders) // args.num_chunks + 1
-    video_folders = video_folders[chunk_size * args.chunk_id: chunk_size * (args.chunk_id + 1)]
-    print(f"{video_folders = }")
 
-    # for video_folder in video_folders:
-    for video_folder in [dataset / "aligned_scans" / "scene0645_00"]:
-        color_im_folder = video_folder / "color"
-        detic_output_folder = video_folder / "detic_output" / args.detic_exp / "instances"
+    color_im_folder = dataset / args.video / "color"
+    detic_output_folder = dataset / args.video / "detic_output" / args.detic_exp / "instances"
+    sam_output_folder = dataset / args.video / "sam_output" / args.detic_exp / "instances"
 
-        for color_im_path in tqdm(sorted(color_im_folder.iterdir())[1000:]):
-            image = cv2.imread(str(color_im_path))
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            # predictor.set_image(image)
+    color_im_paths = sorted(color_im_folder.iterdir())
 
-            # detic_output_path = detic_output_folder / color_im_path.name.replace("jpg", "pkl")
-            # with open(detic_output_path, 'rb') as fp:
-            #     instances = pickle.load(fp)
+    filtered_color_im_paths = []
+    for i in range(0, len(color_im_paths), args.stride):
+        filtered_color_im_paths.append(color_im_paths[i])
 
-            # boxes = instances.get("pred_boxes").tensor.to(args.device)  # XYXY
-            # transformed_boxes = predictor.transform.apply_boxes_torch(boxes, image.shape[:2])
-            #
-            # masks, qualities, _ = predictor.predict_torch(
-            #     point_coords=None,
-            #     point_labels=None,
-            #     boxes=transformed_boxes,
-            #     multimask_output=False,
-            # )
-            # masks = masks.detach().squeeze().cpu().numpy().astype(np.bool_)
-            # qualities = qualities.squeeze().detach().cpu().numpy()
-            # instances.sam_masks_rle = masks_to_rle(masks)
-            # instances.sam_qualities = qualities
-            #
-            output_path = detic_output_folder / color_im_path.name.replace(".jpg", "_sam.pkl")
-            # with open(output_path, 'wb') as f:
-            #     pickle.dump(instances, f)
+    for color_im_path in tqdm(filtered_color_im_paths, disable=False):
+        image = cv2.imread(str(color_im_path))
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        predictor.set_image(image)
 
-            with open(output_path, 'rb') as f:
-                instances = pickle.load(f)
-                masks = torch.from_numpy(np.stack([mask_util.decode(rle) for rle in instances.sam_masks_rle]))
+        detic_output_path = detic_output_folder / color_im_path.name.replace("jpg", "pkl")
+        with open(detic_output_path, 'rb') as fp:
+            instances = pickle.load(fp)
 
-            boxes = instances.pred_boxes.tensor
-            pred_classes = instances.pred_classes.numpy()
-            pred_scores = instances.scores.numpy()
-            qualities = instances.sam_qualities
+        boxes = instances.get("pred_boxes").tensor.to(args.device)  # XYXY
+        transformed_boxes = predictor.transform.apply_boxes_torch(boxes, image.shape[:2])
+        if transformed_boxes.shape[0] != 0:
+            masks, qualities, _ = predictor.predict_torch(
+                point_coords=None,
+                point_labels=None,
+                boxes=transformed_boxes,
+                multimask_output=False,
+            )
+            masks = masks.detach().squeeze().cpu().numpy().astype(np.bool_)
+            qualities = qualities.squeeze().detach().cpu().numpy()
+            instances.sam_masks_rle = masks_to_rle(masks)
+            instances.sam_qualities = qualities
+        else:
+            instances.sam_masks_rle = []
+            instances.sam_qualities = []
 
-            # draw output image
-            plt.figure(figsize=(10, 10))
-            for box, label, mask, quality, score in zip(boxes, pred_classes, masks, qualities, pred_scores):
-                print(f"{label = }, {quality = :.3f}, {score = :.3f}")
-                plt.imshow(image)
-                show_mask(mask.cpu().numpy(), plt.gca(), random_color=True)
-                show_box(box.cpu().numpy(), plt.gca(), f"{quality = :.3f}, {score = :.3f}")
-                plt.show()
+        output_path = sam_output_folder / color_im_path.name.replace(".jpg", ".pkl")
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(output_path, 'wb') as f:
+            pickle.dump(instances, f)
+
+        # draw output image
+        # plt.figure(figsize=(10, 10))
+        # for box, mask, quality in zip(boxes, masks, qualities):
+        #     print(f"{quality = }")
+        #     plt.imshow(image)
+        #     show_mask(mask, plt.gca(), random_color=True)
+        #     show_box(box.cpu().numpy(), plt.gca(), f"{quality = }")
+        #     plt.show()
+        # break
 
 
 if __name__ == "__main__":

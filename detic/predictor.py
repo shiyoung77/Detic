@@ -33,6 +33,7 @@ BUILDIN_CLASSIFIER = {
     'coco': 'datasets/metadata/coco_clip_a+cname.npy',
     'icra23': 'datasets/metadata/icra23_clip_a+cname.npy',
     'imagenet21k': 'datasets/metadata/imagenet21k_clip_a+cname.npy',
+    'imagenet21k-scannet200': 'datasets/metadata/imagenet21k-scannet200_clip_a+cname.npy',
 }
 
 BUILDIN_METADATA_PATH = {
@@ -41,6 +42,7 @@ BUILDIN_METADATA_PATH = {
     'openimages': 'oid_val_expanded',
     'coco': 'coco_2017_val',
     'imagenet21k': 'imagenet21k',
+    'imagenet21k-scannet200': 'imagenet21k-scannet200',
 }
 
 
@@ -100,6 +102,23 @@ class VisualizationDemo(object):
             classifier = get_clip_embeddings(self.metadata.thing_classes)
             print(f"{classifier.shape = }")
             print(f"{classifier.dtype = }")
+        elif args.vocabulary == "coco":
+            self.metadata = MetadataCatalog.get("coco")
+            self.metadata.thing_classes = [
+                'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light',
+                'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow',
+                'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee',
+                'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard',
+                'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple',
+                'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch',
+                'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard',
+                'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase',
+                'scissors', 'teddy bear', 'hair drier', 'toothbrush'
+            ]
+            assert len(self.metadata.thing_classes) == 80
+            classifier = get_clip_embeddings(self.metadata.thing_classes)
+            print(f"{classifier.shape = }")
+            print(f"{classifier.dtype = }")
         elif args.vocabulary == "imagenet21k":
             self.metadata = MetadataCatalog.get(BUILDIN_METADATA_PATH[args.vocabulary])
             lines = Path("datasets/metadata/imagenet21k_wordnet_lemmas.txt").read_text().splitlines()
@@ -108,6 +127,10 @@ class VisualizationDemo(object):
                 thing_classes.extend(line.split(","))
             thing_classes = list(set(thing_classes))
             self.metadata.thing_classes = thing_classes
+            classifier = BUILDIN_CLASSIFIER[args.vocabulary]
+        elif args.vocabulary == "imagenet21k-scannet200":
+            self.metadata = MetadataCatalog.get(BUILDIN_METADATA_PATH[args.vocabulary])
+            self.metadata.thing_classes = Path("datasets/metadata/imagenet21k-scannet200.txt").read_text().splitlines()
             classifier = BUILDIN_CLASSIFIER[args.vocabulary]
         else:
             self.metadata = MetadataCatalog.get(BUILDIN_METADATA_PATH[args.vocabulary])
