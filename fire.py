@@ -50,8 +50,10 @@ def detic(dataset, video, idx, args):
 
 def main():
     parser = argparse.ArgumentParser()
-    # parser.add_argument("--dataset", type=str, default="~/t7/ScanNet/aligned_scans")
-    parser.add_argument("--dataset", type=str, default="~/t7/ycb_video")
+    # parser.add_argument("--dataset", type=str, default="~/dataset/ScanNet/aligned_scans")
+    parser.add_argument("--dataset", type=str, default="~/t7/ScanNet/aligned_scans")
+    # parser.add_argument("--dataset", type=str, default="~/t7/ycb_video")
+    parser.add_argument("--video", type=str, default="")
     parser.add_argument("--vocabulary", default="imagenet21k")
     parser.add_argument("--confidence_thresh", type=float, default=0.3)
     parser.add_argument("--output_folder", default="detic_output")
@@ -69,6 +71,8 @@ def main():
         videos = [f"{i:04d}" for i in range(48, 60)]
     else:
         videos = [i.name for i in sorted(dataset.iterdir())]
+    if args.video:
+        videos = [args.video]
 
     print(f"{dataset = }")
     print(f"{len(videos) = }")

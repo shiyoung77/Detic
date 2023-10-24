@@ -122,10 +122,7 @@ class VisualizationDemo(object):
         elif args.vocabulary == "imagenet21k":
             self.metadata = MetadataCatalog.get(BUILDIN_METADATA_PATH[args.vocabulary])
             lines = Path("datasets/metadata/imagenet21k_wordnet_lemmas.txt").read_text().splitlines()
-            thing_classes = []
-            for line in lines:
-                thing_classes.extend(line.split(","))
-            thing_classes = list(set(thing_classes))
+            thing_classes = [line.split(",")[0] for line in lines]
             self.metadata.thing_classes = thing_classes
             classifier = BUILDIN_CLASSIFIER[args.vocabulary]
         elif args.vocabulary == "imagenet21k-scannet200":
